@@ -1,4 +1,3 @@
-from Adafruit_PWM_Servo_Driver import PWM
 from pygame.locals import *
 import Resources as r
 import Leg as l
@@ -7,23 +6,21 @@ import random as ra
 import math
 import time
 
-# time.sleep(4)
-
-
-
-pwm = PWM(0x40)
-pwm.setPWMFreq(50)
+helpme = 0
 
 width = 1080
 height = 720
 
 pygame.init
-pygame.joystick.init()
 clock = pygame.time.Clock()
 screen = pygame.display.set_mode([width, height])
 
-joystick = pygame.joystick.Joystick(0)
-joystick.init()
+walk_gait = [
+	[0, 90],              # leg1
+	[[0,10],[50, 100]],	  # leg2
+	[0, 90],			  # leg3
+	[[0,10],[50,100]]	  # leg4
+	]
 
 legs = []
 feet = [[0,0],[0,0],[0,0],[0,0]]
@@ -34,9 +31,12 @@ guides = [[100, 0],[100, 0],[100, 0],[100, 0]]  # magnitude, angle
 def update_screen():
 	pygame.display.update()
 
-def draw_rect(pos, size, color):
+def draw_rect(pos, size, color, s):
 	top_left = (pos[0]-(size[0]/2) , pos[1]-(size[1]/2))
-	pygame.draw.rect(screen, color, [top_left,size], 5)
+	pygame.draw.rect(screen, color, [top_left,size], s)
+	
+def draw_line(x, y, c, s):
+	pygame.draw.line(screen, c, x, y, s)
 
 def draw_foot(id, pos, size, sel):
 	if sel == 1:
@@ -60,17 +60,10 @@ def set_on_guide(id, pe):
 	ang = math.radians(angle - 90)
 	local_poss[id][0] = [math.cos(ang)*(pe), math.sin(ang)*(pe)]
 	
-def get_stride_depth(id, depth):
-	mag = guides[id][0]
-	x = math.sqrt(local_poss[id][0][0]**2 + local_poss[id][0][1]**2)
-	y = (x*depth) / (mag/2)
-	return y
-
-		
 def draw_overhead_view(pos, size, sel):
-	draw_rect(pos,size, r.green)
+	draw_rect(pos,size, r.green, 5)
 	body_size = [size[0]*.4,size[1]*.5]
-	draw_rect(pos,body_size, r.blue)
+	draw_rect(pos,body_size, r.blue, 5)
 	
 	for id in range(0,4):
 		if id == 0:
@@ -100,6 +93,56 @@ def get_end_effectors():
 def spawn_leg(pos, id):
 	legs.append(l.Leg(screen, pos, id))
 
+def move_legs(_tick, top, bottom, speed, step_len, gait):
+	# print local_poss[0][1]
+	tick = _tick
+	for i in range(4):
+		try:
+			test = gait[i][0][0]
+			if (tick > gait[i][0][0] and tick < gait[i][0][1]) or (tick > gait[i][1][0] and tick < gait[i][1][1]):
+				if local_poss[i][1] <= bottom:
+					local_poss[i][1] += speed
+			else:
+				if local_poss[i][1] > top:
+					local_poss[i][1] -= speed
+		except:
+			if tick > gait[i][0] and tick < gait[i][1]: # put pushing on ground movement in here
+				if local_poss[i][1] <= bottom:
+					local_poss[i][1] += speed
+					
+				l_tick = tick - gait[i][0]
+				s_tick = (step_len*l_tick)/(gait[i][1]-gait[i][0])
+				local_poss[i][0][1] = (s_tick - step_len/2)
+				
+			else:										# put stepping movement in here		
+				if local_poss[i][1] > top:	
+					local_poss[i][1] -= speed
+					
+				l_tick = tick - gait[i][0]
+				s_tick = (step_len*l_tick)/((gait[i][1]-gait[i][0])) # haz to be sumthin here
+				local_poss[i][0][1] = step_len - (s_tick - step_len/2)
+
+def draw_gait_info(pos, size, gait, t): # [0-3]:gait
+	def draw_slot(s, length):
+		start = (size[0]*length[0])/100
+		stop = (size[0]*length[1])/100
+		middle = (start+stop) / 2
+		cpos = [pos[0]-(size[0]/2)+middle,(size[1]/8)+(size[1]*s)/4]
+		draw_rect(cpos, [stop-start,size[1]/4.2], r.blue, 0)
+	
+	for i in range(4):
+		try:
+			test = gait[i][0][0]
+			draw_slot(i, gait[i][0])
+			draw_slot(i, gait[i][1])
+		except(TypeError):
+			draw_slot(i, gait[i])
+	
+	draw_rect(pos,size, r.green, 5)
+	x = (size[0]*t)/100
+	pygame.draw.line(screen, r.black, [(pos[0]+x)-size[0]/2,pos[1]-size[1]/2],[(pos[0]+x)-size[0]/2,pos[1]+size[1]/2], 5)
+	
+	
 guides[0][1] = 180
 guides[2][1] = 180
 
@@ -108,90 +151,69 @@ spawn_leg([850,200], 2)
 spawn_leg([600,200], 3)
 spawn_leg([600,400], 4)
 
-step_height = 100
-step_scale = 17
-base_height = 160
-walk_speed = .18
+axis2 = axis3 = 0
+sp = 0
 
-test = 0
-z = 0
+prox = 10
+height = 20
+
 curr_foot = 1
+_t = 30
 running = True
 while running:
 	clock.tick(60)
+	_t += sp
+	tick = (_t%100)
 	screen.fill(r.white)
 	
-	axis2 = joystick.get_axis(2)
-	axis3 = joystick.get_axis(3)
-	step_scale = math.sqrt(axis2**2 + axis3**2)*-17
+	# axis2 = joystick.get_axis(2)
+	# axis3 = joystick.get_axis(3)
 	
 	guides[0][1] = 180 - math.degrees(math.atan2(axis2, axis3))
 	guides[1][1] = 180 - math.degrees(math.atan2(axis2, axis3)) + 180
 	guides[2][1] = 180 - math.degrees(math.atan2(axis2, axis3))
 	guides[3][1] = 180 - math.degrees(math.atan2(axis2, axis3)) + 180
-	
-	test = math.cos(z)
-	z  += walk_speed
-	if math.cos(z) > test:
-		sign = "+"
-	else:
-		sign = "-"
-	
-	set_on_guide(0, math.cos(z)*step_scale)
-	if sign == "-":
-		local_poss[0][1] = get_stride_depth(0, step_height) + base_height
 
-	set_on_guide(1, math.cos(z)*step_scale)
-	if sign == "+":
-		local_poss[1][1] = get_stride_depth(1, step_height) + base_height
-		
-	set_on_guide(2, math.cos(z)*step_scale)
-	if sign == "-":
-		local_poss[2][1] = get_stride_depth(2, step_height) + base_height
-		
-	set_on_guide(3, math.cos(z)*step_scale)
-	if sign == "+":
-		local_poss[3][1] = get_stride_depth(3, step_height) + base_height
-	
 
-	
 	draw_overhead_view([160,160],[320,320], curr_foot)
-	get_end_effectors()
+	draw_gait_info([480,80],[320,160], walk_gait, tick)
+	move_legs(tick, 155, 185, 2, 50, walk_gait)
 	
+	get_end_effectors()
 	for item in legs:
 		item.update(end_effs[item.leg_id-1][0], end_effs[item.leg_id-1][1])
 
 	update_screen()
 	for i in pygame.event.get():
 		if i.type == pygame.QUIT:
-			pwm.setPWM(0,0,0)
-			pwm.setPWM(1,0,0)
-			pwm.setPWM(2,0,0)
-			pwm.setPWM(3,0,0)
-			pwm.setPWM(4,0,0)
-			pwm.setPWM(5,0,0)
-			pwm.setPWM(6,0,0)
-			pwm.setPWM(7,0,0)
-			pwm.setPWM(8,0,0)
-			pwm.setPWM(9,0,0)
-			pwm.setPWM(10,0,0)
-			pwm.setPWM(11,0,0)
+			# pwm.setPWM(0,0,0)
+			# pwm.setPWM(1,0,0)
+			# pwm.setPWM(2,0,0)
+			# pwm.setPWM(3,0,0)
+			# pwm.setPWM(4,0,0)
+			# pwm.setPWM(5,0,0)
+			# pwm.setPWM(6,0,0)
+			# pwm.setPWM(7,0,0)
+			# pwm.setPWM(8,0,0)
+			# pwm.setPWM(9,0,0)
+			# pwm.setPWM(10,0,0)
+			# pwm.setPWM(11,0,0)
 			running = False
 			pygame.quit()
 		if i.type == KEYDOWN:
 			if i.key == K_f:
 				for j in range(0,4):
-					guides[j][1] -=12
+					guides[j][1] -= 12
 			if i.key == K_g:
 				for j in range(0,4):
-					guides[j][1] +=12
+					guides[j][1] += 12
 			
 			if i.key == K_q:
-				step_scale -=1
-				print step_scale
+				helpme -= 1
+				pass
 			if i.key == K_w:
-				step_scale +=1
-				print step_scale
+				helpme += 1
+				pass
 				
 			if i.key == K_c:
 				curr_foot += 1
@@ -206,3 +228,22 @@ while running:
 				local_poss[curr_foot-1][0][0] -= 6
 			if i.key == K_RIGHT and curr_foot != 5:
 				local_poss[curr_foot-1][0][0] += 6
+			
+			if i.key == K_KP_PLUS:
+				sp +=.2
+			if i.key == K_KP_MINUS:
+				sp -= .2
+				
+			if i.key == K_KP8:
+				axis3 = sp*-1
+			if i.key == K_KP2:
+				axis3 = sp
+			if i.key == K_KP4:
+				axis2 = sp*-1
+			if i.key == K_KP6:
+				axis2 = sp
+			if i.key == K_KP5:
+				axis2 = axis3 = 0
+			
+			
+			
