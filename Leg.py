@@ -1,6 +1,6 @@
-from Adafruit_PWM_Servo_Driver import PWM
+# from Adafruit_Python_PCA9685 import PWM
 from pygame.locals import *
-import RPi.GPIO as GPIO
+# import RPi.GPIO as GPIO
 import Resources as r
 import Segment as s
 import pygame
@@ -9,8 +9,8 @@ import math
 import sys
 import os
 
-pwm = PWM(0x40)
-pwm.setPWMFreq(50)
+# pwm = PWM(0x40)
+# pwm.setPWMFreq(50)
 
 offs_1 = 0
 offs_2 = 0
@@ -73,28 +73,28 @@ class Leg():
 	
 		### Rpi Implementation ###
 	
-		self.servo0_angle = 180 - (self.objects[0].local_angle + 90 + offs_1 - 90)
-		self.servo1_angle = 180 - (self.objects[1].local_angle + 90 + offs_2)
-		self.servo2_angle = 180 - int(math.degrees(_angle))
+		# self.servo0_angle = 180 - (self.objects[0].local_angle + 90 + offs_1 - 90)
+		# self.servo1_angle = 180 - (self.objects[1].local_angle + 90 + offs_2)
+		# self.servo2_angle = 180 - int(math.degrees(_angle))
 
 			
-		self.pwm0_value = ((((servo_max-servo_min)*self.servo0_angle)/ 360) + servo_min)
-		self.pwm1_value = ((((servo_max-servo_min)*self.servo1_angle)/ 360) + servo_min)
-		self.pwm2_value = ((((servo_max-servo_min)*self.servo2_angle)/ 360) + servo_min)
+		# self.pwm0_value = ((((servo_max-servo_min)*self.servo0_angle)/ 360) + servo_min)
+		# self.pwm1_value = ((((servo_max-servo_min)*self.servo1_angle)/ 360) + servo_min)
+		# self.pwm2_value = ((((servo_max-servo_min)*self.servo2_angle)/ 360) + servo_min)
 		
-		if self.leg_id == 1:
-			pwm.setPWM(3,0,self.pwm0_value)
-			pwm.setPWM(4,0,self.pwm1_value)
-			pwm.setPWM(5,0,self.pwm2_value)
-		if self.leg_id == 2:
-			pwm.setPWM(0,0,self.pwm0_value)
-			pwm.setPWM(1,0,self.pwm1_value)
-			pwm.setPWM(2,0,self.pwm2_value)
-		if self.leg_id == 3:
-			pwm.setPWM(6,0,self.pwm0_value)
-			pwm.setPWM(7,0,self.pwm1_value)
-			pwm.setPWM(8,0,self.pwm2_value)
-		if self.leg_id == 4:
-			pwm.setPWM(9,0,self.pwm0_value)
-			pwm.setPWM(10,0,self.pwm1_value)
-			pwm.setPWM(11,0,self.pwm2_value)
+		# if self.leg_id == 1:
+			# pwm.setPWM(3,0,self.pwm0_value)
+			# pwm.setPWM(4,0,self.pwm1_value)
+			# pwm.setPWM(5,0,self.pwm2_value)
+		# if self.leg_id == 2:
+			# pwm.setPWM(0,0,self.pwm0_value)
+			# pwm.setPWM(1,0,self.pwm1_value)
+			# pwm.setPWM(2,0,self.pwm2_value)
+		# if self.leg_id == 3:
+			# pwm.setPWM(6,0,self.pwm0_value)
+			# pwm.setPWM(7,0,self.pwm1_value)
+			# pwm.setPWM(8,0,self.pwm2_value)
+		# if self.leg_id == 4:
+			# pwm.setPWM(9,0,self.pwm0_value)
+			# pwm.setPWM(10,0,self.pwm1_value)
+			# pwm.setPWM(11,0,self.pwm2_value)
