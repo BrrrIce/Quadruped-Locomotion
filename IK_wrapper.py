@@ -58,7 +58,7 @@ def get_guide_pos(id):
 def set_on_guide(id, pe):
 	angle = guides[id][1]
 	ang = math.radians(angle - 90)
-	local_poss[id][0] = [math.cos(ang)*(pe), math.sin(ang)*(pe)]
+	local_poss[id][0] = [math.cos(ang)*pe, math.sin(ang)*pe]
 	
 def draw_overhead_view(pos, size, sel):
 	draw_rect(pos,size, r.green, 5)
@@ -94,7 +94,6 @@ def spawn_leg(pos, id):
 	legs.append(l.Leg(screen, pos, id))
 
 def move_legs(_tick, top, bottom, speed, step_len, gait):
-	# print local_poss[0][1]
 	tick = _tick
 	for i in range(4):
 		try:
@@ -106,12 +105,12 @@ def move_legs(_tick, top, bottom, speed, step_len, gait):
 				if  tick > gait[i][1][0] and tick < gait[i][1][1]:
 					l_tick = tick - gait[i][1][0]
 					s_tick = (step_len*l_tick)/( (100 - gait[i][1][0]) + gait[i][0][1])
-					local_poss[i][0][1] = (s_tick - step_len/2)
+					set_on_guide(i, (s_tick - step_len/2))
 					
 				if  tick > gait[i][0][0] and tick < gait[i][0][1]:
 					l_tick = (tick+100) - gait[i][1][0]
 					s_tick = (step_len*l_tick)/( (100 - gait[i][1][0]) + gait[i][0][1])
-					local_poss[i][0][1] = (s_tick - step_len/2)
+					set_on_guide(i, (s_tick - step_len/2))
 				
 			else:
 				if local_poss[i][1] > top:
@@ -119,7 +118,7 @@ def move_legs(_tick, top, bottom, speed, step_len, gait):
 					
 				l_tick = tick - gait[i][0][1] # Start
 				s_tick = (step_len*l_tick)/(gait[i][1][0]-gait[i][0][1]) # Total Length
-				local_poss[i][0][1] = step_len - (s_tick + step_len/2)
+				set_on_guide(i, step_len - (s_tick + step_len/2))
 				
 		except:
 			if tick > gait[i][0] and tick < gait[i][1]:
@@ -128,7 +127,7 @@ def move_legs(_tick, top, bottom, speed, step_len, gait):
 					
 				l_tick = tick - gait[i][0]
 				s_tick = (step_len*l_tick)/(gait[i][1]-gait[i][0])
-				local_poss[i][0][1] = (s_tick - step_len/2)
+				set_on_guide(i, s_tick - step_len/2)
 				
 			else:											
 				if local_poss[i][1] > top:	
@@ -136,7 +135,7 @@ def move_legs(_tick, top, bottom, speed, step_len, gait):
 					
 				l_tick = tick - gait[i][1]
 				s_tick = (step_len*l_tick)/(100 - gait[i][1])
-				local_poss[i][0][1] = step_len - (s_tick + step_len/2)
+				set_on_guide(i, step_len - (s_tick + step_len/2))
 
 def draw_gait_info(pos, size, gait, t): # [0-3]:gait
 	def draw_slot(s, length):
@@ -186,9 +185,9 @@ while running:
 	# axis3 = joystick.get_axis(3)
 	
 	guides[0][1] = 180 - math.degrees(math.atan2(axis2, axis3))
-	guides[1][1] = 180 - math.degrees(math.atan2(axis2, axis3)) + 180
+	guides[1][1] = 180 - math.degrees(math.atan2(axis2, axis3))
 	guides[2][1] = 180 - math.degrees(math.atan2(axis2, axis3))
-	guides[3][1] = 180 - math.degrees(math.atan2(axis2, axis3)) + 180
+	guides[3][1] = 180 - math.degrees(math.atan2(axis2, axis3))
 
 
 	draw_overhead_view([160,160],[320,320], curr_foot)
@@ -260,3 +259,6 @@ while running:
 				axis2 = sp
 			if i.key == K_KP5:
 				axis2 = axis3 = 0
+			
+			
+			
