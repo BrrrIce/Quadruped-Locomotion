@@ -16,10 +16,10 @@ clock = pygame.time.Clock()
 screen = pygame.display.set_mode([width, height])
 
 walk_gait = [
-	[0, 90],              # leg1
-	[[0,10],[50, 100]],	  # leg2
-	[0, 90],			  # leg3
-	[[0,10],[50,100]]	  # leg4
+	[0, 60],              # leg1
+	[[0,10],[45, 100]],	  # leg2
+	[0, 60],			  # leg3
+	[[0,10],[45,100]]	  # leg4
 	]
 
 legs = []
@@ -102,11 +102,27 @@ def move_legs(_tick, top, bottom, speed, step_len, gait):
 			if (tick > gait[i][0][0] and tick < gait[i][0][1]) or (tick > gait[i][1][0] and tick < gait[i][1][1]):
 				if local_poss[i][1] <= bottom:
 					local_poss[i][1] += speed
+				
+				if  tick > gait[i][1][0] and tick < gait[i][1][1]:
+					l_tick = tick - gait[i][1][0]
+					s_tick = (step_len*l_tick)/( (100 - gait[i][1][0]) + gait[i][0][1])
+					local_poss[i][0][1] = (s_tick - step_len/2)
+					
+				if  tick > gait[i][0][0] and tick < gait[i][0][1]:
+					l_tick = (tick+100) - gait[i][1][0]
+					s_tick = (step_len*l_tick)/( (100 - gait[i][1][0]) + gait[i][0][1])
+					local_poss[i][0][1] = (s_tick - step_len/2)
+				
 			else:
 				if local_poss[i][1] > top:
 					local_poss[i][1] -= speed
+					
+				l_tick = tick - gait[i][0][1] # Start
+				s_tick = (step_len*l_tick)/(gait[i][1][0]-gait[i][0][1]) # Total Length
+				local_poss[i][0][1] = step_len - (s_tick + step_len/2)
+				
 		except:
-			if tick > gait[i][0] and tick < gait[i][1]: # put pushing on ground movement in here
+			if tick > gait[i][0] and tick < gait[i][1]:
 				if local_poss[i][1] <= bottom:
 					local_poss[i][1] += speed
 					
@@ -114,13 +130,13 @@ def move_legs(_tick, top, bottom, speed, step_len, gait):
 				s_tick = (step_len*l_tick)/(gait[i][1]-gait[i][0])
 				local_poss[i][0][1] = (s_tick - step_len/2)
 				
-			else:										# put stepping movement in here		
+			else:											
 				if local_poss[i][1] > top:	
 					local_poss[i][1] -= speed
 					
-				l_tick = tick - gait[i][0]
-				s_tick = (step_len*l_tick)/((gait[i][1]-gait[i][0])) # haz to be sumthin here
-				local_poss[i][0][1] = step_len - (s_tick - step_len/2)
+				l_tick = tick - gait[i][1]
+				s_tick = (step_len*l_tick)/(100 - gait[i][1])
+				local_poss[i][0][1] = step_len - (s_tick + step_len/2)
 
 def draw_gait_info(pos, size, gait, t): # [0-3]:gait
 	def draw_slot(s, length):
@@ -244,6 +260,3 @@ while running:
 				axis2 = sp
 			if i.key == K_KP5:
 				axis2 = axis3 = 0
-			
-			
-			
