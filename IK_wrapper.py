@@ -6,7 +6,6 @@ import random as ra
 import math
 import time
 
-helpme = 0
 
 width = 1080
 height = 720
@@ -16,10 +15,17 @@ clock = pygame.time.Clock()
 screen = pygame.display.set_mode([width, height])
 
 walk_gait = [
+	[[0,25],[45,100]],    # leg1
+	[[0,5],[20,100]],     # leg2
+	[[0,50],[70,100]], 	  # leg3
+	[[0,75],[95,100]], 	  # leg4
+	]
+
+trot_gait = [
 	[0, 60],              # leg1
-	[[0,10],[45, 100]],	  # leg2
+	[[0,10],[50, 100]],	  # leg2
 	[0, 60],			  # leg3
-	[[0,10],[45,100]]	  # leg4
+	[[0,10],[50,100]]	  # leg4
 	]
 
 legs = []
@@ -84,7 +90,7 @@ def draw_overhead_view(pos, size, sel):
 			draw_foot(1, feet[id], 8, 2)
 			
 def get_end_effectors():	
-	for i in range(0,4):
+	for i in range(4):
 		angle = math.atan2(local_poss[i][1]+320*.3, local_poss[i][0][0]*2)
 		x1 = local_poss[i][0][1]*2
 		y1 = math.hypot(abs(local_poss[i][0][0]*2), local_poss[i][1])
@@ -93,13 +99,13 @@ def get_end_effectors():
 def spawn_leg(pos, id):
 	legs.append(l.Leg(screen, pos, id))
 
-def move_legs(_tick, top, bottom, speed, step_len, gait):
+def move_legs(_tick, base_height, step_height, speed, step_len, gait):
 	tick = _tick
 	for i in range(4):
 		try:
 			test = gait[i][0][0]
 			if (tick > gait[i][0][0] and tick < gait[i][0][1]) or (tick > gait[i][1][0] and tick < gait[i][1][1]):
-				if local_poss[i][1] <= bottom:
+				if local_poss[i][1] <= base_height:
 					local_poss[i][1] += speed
 				
 				if  tick > gait[i][1][0] and tick < gait[i][1][1]:
@@ -113,7 +119,7 @@ def move_legs(_tick, top, bottom, speed, step_len, gait):
 					set_on_guide(i, (s_tick - step_len/2))
 				
 			else:
-				if local_poss[i][1] > top:
+				if local_poss[i][1] >= base_height - step_height:
 					local_poss[i][1] -= speed
 					
 				l_tick = tick - gait[i][0][1] # Start
@@ -121,18 +127,17 @@ def move_legs(_tick, top, bottom, speed, step_len, gait):
 				set_on_guide(i, step_len - (s_tick + step_len/2))
 				
 		except:
+			
 			if tick > gait[i][0] and tick < gait[i][1]:
-				if local_poss[i][1] <= bottom:
+				if local_poss[i][1] <= base_height:
 					local_poss[i][1] += speed
-					
 				l_tick = tick - gait[i][0]
 				s_tick = (step_len*l_tick)/(gait[i][1]-gait[i][0])
 				set_on_guide(i, s_tick - step_len/2)
 				
-			else:											
-				if local_poss[i][1] > top:	
+			else:
+				if local_poss[i][1] >= base_height - step_height:
 					local_poss[i][1] -= speed
-					
 				l_tick = tick - gait[i][1]
 				s_tick = (step_len*l_tick)/(100 - gait[i][1])
 				set_on_guide(i, step_len - (s_tick + step_len/2))
@@ -157,9 +162,7 @@ def draw_gait_info(pos, size, gait, t): # [0-3]:gait
 	x = (size[0]*t)/100
 	pygame.draw.line(screen, r.black, [(pos[0]+x)-size[0]/2,pos[1]-size[1]/2],[(pos[0]+x)-size[0]/2,pos[1]+size[1]/2], 5)
 	
-	
-guides[0][1] = 180
-guides[2][1] = 180
+
 
 spawn_leg([850,400], 1)
 spawn_leg([850,200], 2)
@@ -169,7 +172,6 @@ spawn_leg([600,400], 4)
 axis2 = axis3 = 0
 sp = 0
 
-prox = 10
 height = 20
 
 curr_foot = 1
@@ -192,7 +194,7 @@ while running:
 
 	draw_overhead_view([160,160],[320,320], curr_foot)
 	draw_gait_info([480,80],[320,160], walk_gait, tick)
-	move_legs(tick, 155, 185, 2, 50, walk_gait)
+	move_legs(tick, 175, 20, 3, 50, walk_gait) # base_height, step_height, speed, step_len
 	
 	get_end_effectors()
 	for item in legs:
